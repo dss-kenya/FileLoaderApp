@@ -15,11 +15,10 @@ public class RestClient {
     }
 
     public static Retrofit getRetrofit() {
-        final Retrofit retrofit = new Retrofit.Builder()
+        return new Retrofit.Builder()
                 .baseUrl(Api.getHost())
                 .addConverterFactory(GsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .build();
-        return retrofit;
     }
 }

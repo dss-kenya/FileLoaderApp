@@ -14,7 +14,7 @@ import java.io.InputStream;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.observers.DisposableObserver;
+import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 import retrofit2.Retrofit;
@@ -48,25 +48,19 @@ public class RequestBuilder<ReturnClass> {
             final Observable<ResponseBody> observer = retrofit.create(RestApiSource.class).fetchFile(url);
             observer.subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new DisposableObserver<ResponseBody>() {
+                    .doOnNext(new Consumer<ResponseBody>() {
                         @Override
-                        public void onNext(@io.reactivex.annotations.NonNull final ResponseBody responseBody) {
-                            final byte[] imageBytes = getBytes(responseBody.byteStream());
-                            if (imageBytes == null) {
-                                return;
+                        public void accept(@io.reactivex.annotations.NonNull final ResponseBody responseBody) {
+                            try {
+                                final byte[] imageBytes = getBytes(responseBody.byteStream());
+                                if (imageBytes == null) {
+                                    return;
+                                }
+                                fileLoader.addDataToCache(url, imageBytes);
+                                target.setImageBitmap(BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length));
+                            } catch (final Exception e) {
+                                e.printStackTrace();
                             }
-                            fileLoader.addDataToCache(url, imageBytes);
-                            target.setImageBitmap(BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length));
-                        }
-
-                        @Override
-                        public void onError(@io.reactivex.annotations.NonNull final Throwable e) {
-
-                        }
-
-                        @Override
-                        public void onComplete() {
-
                         }
 
                         private byte[] getBytes(final InputStream is) {
@@ -87,7 +81,8 @@ public class RequestBuilder<ReturnClass> {
                                 return null;
                             }
                         }
-                    });
+
+                    }).subscribe();
         }
 
         if (fileLoader.hasDataInCache(url)) {
